@@ -1,136 +1,164 @@
 import createDataContext from './createDataContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {getCurrentTime} from '../screens/ChatDetail';
-var net = require('react-native-tcp');
-
-
-var names = [
-  "Sansa",
-  "Mowgli",
-  "Cricket",
-  "Banjo",
-  "Diezel Ky",
-  "Kal-El",
-  "Satchel",
-  "Egypt",
- " Buddy Bear",
-  "Tiamii",
-  "Bluebell Madonna",
-  "Fifibelle",
-  "Apple",
-  "Destry",
-  "Tu Morrow",
-  "North",
-  "Sunday",
-  "Jermajesty",
-  "Tokyo",
-  "Levaeh",
-  "Adeline",
-  "Audi",
-  "Alucard",
-  "Sparrow",
-  "Correspondent",
-  "Seven",
-  "Puma",
-  "Camera",
-  "Bandit",
-  "Hashtag",
-  "Facebook",
-  "Mustard",
-  "Cherry",
-  "Summer Rain",
-  "River Rose",
-  "Nutella",
-  "Daisy Boo",
-  "Free",
-  "Megaa Omari"
-];
+import { NativeEventEmitter, NativeModules } from 'react-native';
+import LocalServer from '../../LocalServer';
+var seedrandom = require('seedrandom');
 
 
 const serverDataReducer = (state, action) => {
-    switch(action.type){
-        case 'create_server':{
-            const server = net.createServer((socket) => {
-                console.log('server connected on ' + JSON.stringify(socket.address()));
-                let user;
-                while(true){
-                  user = names[Math.floor(Math.random() * names.length)];
-                  if(!state.clients.find(element => element.user === user) && user != state.username) break;
-                }
+  switch(action.type){
+    case 'server_open':{
+      AsyncStorage.setItem('@server_data', JSON.stringify({...state, listeners:{}, username:action.payload})).then().catch((error) => {
+        console.log(error.message);
+      });
+      // console.log("server-open with", action.payload);
+      seedrandom(action.payload, { global: true });
+      return {...state, username:action.payload};
+    }
+    case 'server_close':{
+      const data = {active_id:'', server_open:false, clients:[], username:''};
+      AsyncStorage.setItem('@server_data', JSON.stringify(data)).then().catch((error) => {
+        console.log(error.message);
+      });
+      return {...state, ...data};
+    }
+    case 'server_error':{
+      AsyncStorage.setItem('@server_data', JSON.stringify({...state, listeners:{}, server_open:false, server_error:true, active_id:''})).then().catch((error) => {
+        console.log(error.message);
+      });
+      return {...state, server_open:false, server_error:true, active_id:''};
+    }
+    case 'create_server':{
+      LocalServer.startServer(action.payload.title);
+      AsyncStorage.setItem('@server_data', JSON.stringify({...state, server_open:true, listeners:{}, active_id:action.payload.id})).then().catch((error) => {
+        console.log(error.message);
+      });
+      return {...state, server_open:true, active_id:action.payload.id};
+    }
+    case 'subscribe':{
+      // console.log("Subscription called");
+      const eventEmitter = new NativeEventEmitter(NativeModules.ToastExample);
+      const start = eventEmitter.addListener('server-start', (data) => {
+        action.payload.serverOpen(data.payload); //client name
+      });
 
-                socket.write(JSON.stringify({user, title:action.payload.title}));
-                
-                action.payload.addClient({user, socket});
-                action.payload.addData(socket.address(), {id:Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5), date:getCurrentTime(), type:'system',  message: "joined the chat", user})
+      const error = eventEmitter.addListener('server-error', () => {
+        action.payload.serverError();
+      });
 
-                socket.on('data', (data) => {
-                    data = JSON.parse(data);
-                    if(data.type !== 'system')
-                      action.payload.addData(socket.address(), {...data, type:'in'});
-                    else
-                      action.payload.addData(socket.address(), data);
-                });
-                socket.on('error', (error) => {
-                  console.log('error ' + error);
-                });
-                socket.on('close', (error) => {
-                  console.log('server client closed ' + (error ? error : ''));
-                });
-              }).listen(6060, () => {
-                console.log('opened server on ' + JSON.stringify(server.address()));
-              });
+      const close = eventEmitter.addListener('server-close', () => {
+        action.payload.serverClose();
+      }); 
+      const connect = eventEmitter.addListener('client-connect', (params) => {
+        action.payload.addClient(params);
+        const data = {id:Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5), date:getCurrentTime(), type:'system',  message: "joined the chat", user:params.name};
+        LocalServer.sendMsg(params.address, JSON.stringify(data));
+        action.payload.addData(data);
+      });
+
+      const disconnect = eventEmitter.addListener('client-disconnect', (params) => {
+        action.payload.removeClient(params);
+        const data = {id:Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5), date:getCurrentTime(), type:'system',  message: "left the chat", user:params.name};
+        LocalServer.sendMsg(params.address, JSON.stringify(data));
+        action.payload.addData(data);
+      });
+      const message = eventEmitter.addListener('message', (params) => {
+        const data = JSON.parse(params.payload)
+        // console.log("client-message", params.payload);
+        action.payload.addData(data);
+      });
+      return {...state, listeners: {...state.listeners, connect, disconnect, start, error, close, message}};
+    }
+
+    case 'remove_client':{
+      const clients = state.clients.filter(client => client.address == action.payload.address);
+      AsyncStorage.setItem('@server_data', JSON.stringify({...state, listeners:{}, clients})).then().catch((error) => {
+        console.log(error.message);
+      });
+      return {...state, clients};
+    }
+
+    case 'add_client':{
+      AsyncStorage.setItem('@server_data', JSON.stringify({...state, listeners:{}, clients:[...state.clients, action.payload]})).then().catch((error) => {
+        console.log(error.message);
+      });
+      return {...state, clients:[...state.clients, action.payload]};
+    }
+
+    case 'unsubscribe':{
+      // console.log("unsubscribe called", state.listeners);
+      for(let key in state.listeners){
+        // console.log("key", key);
+        state.listeners[key].remove();
+      }
+      AsyncStorage.setItem('@server_data', JSON.stringify({...state, listeners:{}})).then().catch((error) => {
+        console.log(error.message);
+      });
+      return {...state, listeners:{}};
+    }
             
-              server.on('error', (error) => {
-                console.log('error ' + error);
-              });
-              server.on('close', () => {
-                console.log('server close');
-              });
-            state.username = names[Math.floor(Math.random() * names.length)];
-            return {...state, server};
-        }
-
-        case 'broadcast':{
-            state.clients.forEach(({socket}) => {
-                if(socket.address() === action.payload.address) return;
-                socket.write(JSON.stringify(action.payload.data));
-            });
-            return state;
-        }
-        case 'add_client':
-            return {...state, clients:[...state.clients, action.payload]};
-
-        case 'reset':
-            if(state.server){
-              state.clients.forEach(({socket}) => {
-                socket.destroy();
-              });
-              state.server.close();
-            }
-            return {server:null, clients:[], username:''};
-        default:
-            return state;
+    case 'send_msg':{
+      // console.log("server-message(sender side)", JSON.stringify({...action.payload, type:"in", user:state.username}));
+      LocalServer.sendMsg(" ", JSON.stringify({...action.payload, type:"in", user:state.username}));
+      return state
     }
+    case 'set_data':
+      return {...action.payload, listeners: state.listeners};
+    default:
+      return state;
+  }
+}
+
+
+const sendMsg = dispatch => (data) => {
+  dispatch({type:'send_msg', payload:data})
+}
+const unsubscribeAll = dispatch => () => {
+  // console.log("unsubscription called");
+  dispatch({type:'unsubscribe'});
+}
+
+const loadConfig = dispatch => async () => {
+  try{
+    var data = await AsyncStorage.getItem('@server_data');
+    if(data !== null) dispatch({type:'set_data', payload:JSON.parse(data)});
+  }catch(e){
+    console.log(e.message);
+  }
+}
+
+const subscribeAll = dispatch => (id, callback) => {
+  const addClient = (client) => {
+      dispatch({type:'add_client', payload:client});
+  }
+  const addData = (data) => {
+      callback(id, data);
+  }
+  const removeClient = (data) => {
+    dispatch({type:'remove_client', payload:data});
+  }
+  const serverOpen = (data) => {
+    dispatch({type:'server_open', payload:data});
+  }
+  const serverClose = () => {
+    dispatch({type:'server_close'});
+    dispatch({type:'unsubscribe'});
+  }
+  const serverError = () => {
+    dispatch({type:'server_error'});
+    dispatch({type:'unsubscribe'});
+  }
+  dispatch({type: 'subscribe', payload:{addClient, addData, serverOpen, serverError, serverClose, removeClient}});
+}
+
+
+const createServer = dispatch => (id, title) => {
+  dispatch({type:'create_server', payload:{id, title}});
 };
 
-const broadcastMsg = dispatch => (data) => {
-  dispatch({type:'broadcast', payload:{address:'', data}});
-};
+const loadMsg = () => () => {
+  LocalServer.loadMsg(); 
+}
 
-const reset = dispatch => () => {
-  dispatch({type:'reset'});
-};
-
-const createServer = dispatch => (id, title, callback) => {
-
-    const addClient = (client) => {
-        dispatch({type:'add_client', payload:client});
-    }
-    const addData = (address, data) => {
-        callback(id, data);
-        dispatch({type:'broadcast', payload:{address, data}});
-    }
-    dispatch({type:'create_server', payload:{addData, addClient, title}});
-};
-
-
-export const {Context, Provider} = createDataContext(serverDataReducer, {createServer, broadcastMsg, reset}, {server:null, clients:[], username:''});
+export const {Context, Provider} = createDataContext(serverDataReducer, {createServer, loadConfig, unsubscribeAll, sendMsg, subscribeAll, loadMsg}, {active_id:'', server_open:false, clients:[], username:'', listeners:{}});

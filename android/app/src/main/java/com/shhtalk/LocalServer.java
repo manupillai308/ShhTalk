@@ -14,6 +14,7 @@ import android.content.Intent;
 
 public class LocalServer extends ReactContextBaseJavaModule {
     public static ReactApplicationContext reactContext;
+    public static String title;
 
     LocalServer(ReactApplicationContext context) {
        super(context);
@@ -25,7 +26,8 @@ public class LocalServer extends ReactContextBaseJavaModule {
    }
 
    @ReactMethod
-   public void startServer(){
+   public void startServer(String room_name){
+        LocalServer.title = room_name;
         Intent service = new Intent(LocalServer.reactContext, ServerService.class);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
                 LocalServer.reactContext.startForegroundService(service);
@@ -43,7 +45,14 @@ public class LocalServer extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void sendMsg(String msg){
-        ServerService.broadcastMsg(msg);
+    public void loadMsg(){
+        ServerService.loadMsg();
+    }
+
+    @ReactMethod
+    public void sendMsg(String from, String msg){
+        ServerService.lock.lock();
+        ServerService.broadcastMsg(from, msg);
+        ServerService.lock.unlock();
     }
 }

@@ -25,8 +25,10 @@ import java.util.LinkedList;
 import java.lang.Thread;
 import java.util.Arrays;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
+import android.util.Log;
 
 class ClientConnection extends Thread{
     DataInputStream data_in;
@@ -35,7 +37,7 @@ class ClientConnection extends Thread{
     public volatile boolean exit;
     public boolean proxy;
     String clientName;
-    static Context context;
+    public static Context context;
 
     ClientConnection(){
         proxy = true;
@@ -49,14 +51,15 @@ class ClientConnection extends Thread{
         clientName = name;
         data_in = new DataInputStream(socket.getInputStream());
         data_out = new DataOutputStream(socket.getOutputStream());
-        write(clientName);
+        write("{ \"user\": \"" + clientName + "\", \"title\": \"" + LocalServer.title + "\" }");
 
         WritableMap params = Arguments.createMap();
-        params.putString("payload", clientName);
+        params.putString("name", clientName);
+        params.putString("address", socket.getInetAddress().toString());
         LocalServer.reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
             .emit("client-connect", params);
         
-            exit = false;
+        exit = false;
     }
     public void write(String msg) throws IOException{
         data_out.writeUTF(msg);
@@ -67,7 +70,7 @@ class ClientConnection extends Thread{
         return data_in.readUTF();
     }
 
-    private boolean isAppOnForeground() {
+    public static boolean isAppOnForeground() {
         ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
         List<ActivityManager.RunningAppProcessInfo> appProcesses = activityManager.getRunningAppProcesses();
         if (appProcesses == null) {
@@ -97,20 +100,14 @@ class ClientConnection extends Thread{
                     .emit("message",params);
 
                 }
-                // else{
-                //     Intent js_service = new Intent(context, HeadlessUpdateService.class);
-                //     Bundle bundle = new Bundle();
-
-                //     bundle.putString("payload", msg);
-                //     js_service.putExtras(bundle);
-
-                //     context.startService(js_service);
-                //     HeadlessJsTaskService.acquireWakeLockNow(context);
-                // }
+                else{
+                    ServerService.messages.add(msg);
+                }
                 ServerService.lock.lock();
-                ServerService.broadcastMsg(this, msg);
+                ServerService.broadcastMsg(this.socket.getInetAddress().toString(), msg);
                 ServerService.lock.unlock();
             } catch (Exception e) {
+                // Log.e("server-service", e.getMessage());
                 break;
             }
         }
@@ -122,14 +119,25 @@ class ClientConnection extends Thread{
         try{
             
             WritableMap params = Arguments.createMap();
-            params.putString("payload", clientName);
+            params.putString("name", clientName);
+            params.putString("address", this.socket.getInetAddress().toString());
             LocalServer.reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
                 .emit("client-disconnect", params);
             
-                data_in.close();
-            data_out.close();
             socket.close();
+            data_in.close();
+            data_out.close();
+        }catch(Exception e){}
+        finally{
             ServerService.clients.remove(this);
+        }
+    }
+    public void stopClientSilent(){
+        exit = true;
+        try{
+            socket.close();
+            data_in.close();
+            data_out.close();
         }catch(Exception e){}
     }
 }
@@ -137,6 +145,7 @@ class ClientConnection extends Thread{
 public class ServerService extends Service {
     public static ReentrantLock lock;
     public static LinkedList<ClientConnection> clients;
+    public static LinkedList<String> messages;
     public static volatile boolean exit;
     public static ServerSocket socket;
     public static ArrayList<String> names;
@@ -145,24 +154,43 @@ public class ServerService extends Service {
 
     private static final String CHANNEL_ID = "local_server";
 
+    public static void loadMsg(){
+        try{
+            while(ClientConnection.isAppOnForeground()){
+                String msg = messages.pop();
+                WritableMap params = Arguments.createMap();
+                params.putString("payload", msg);
+                LocalServer.reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                .emit("message",params);
+            }
+        }catch(NoSuchElementException e){
+
+        }catch(Exception e){}
+    }
+
     public void stopServer(){
         try{
             // Context context = getApplicationContext();
             socket.close();
-            LocalServer.reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                .emit("server-disconnect", null);
         }catch(Exception e){}
+        finally{
+            try{
+                while(true){
+                    ClientConnection client = clients.pop();
+                    client.stopClientSilent();
+                }
+            }catch(NoSuchElementException e){}
+            LocalServer.reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                .emit("server-close", null);
+        }
     }
 
-    public static void broadcastMsg(ClientConnection c, String msg){
-        String from;
-        if(!c.proxy) from = c.socket.getInetAddress().toString();
-        else from = " ";
+    public static void broadcastMsg(String from, String msg){
         for(int i=0; i < clients.size(); i++){
             ClientConnection client = clients.get(i);
             try{
-                InetAddress to = client.socket.getInetAddress();
-                if(c.proxy || !from.equals(to)){
+                String to = client.socket.getInetAddress().toString();
+                if(!from.equals(to)){
                         client.write(msg);
                 }
             }catch(IOException e){
@@ -170,10 +198,6 @@ public class ServerService extends Service {
             }
         }
 
-    }
-
-    public static void broadcastMsg(String msg){
-        broadcastMsg(new ClientConnection(), msg);
     }
 
     private String getClientName(){
@@ -193,6 +217,7 @@ public class ServerService extends Service {
 
             lock = new ReentrantLock();
             clients = new LinkedList<ClientConnection>();
+            messages = new LinkedList<String>();
 
             try{
                 socket = new ServerSocket(6060);
@@ -200,7 +225,7 @@ public class ServerService extends Service {
                 WritableMap params = Arguments.createMap();
                 params.putString("payload", name);
                 LocalServer.reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                    .emit("server-success", params);
+                    .emit("server-start", params);
             }catch(IOException e){
                 // send server error event
                 LocalServer.reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)

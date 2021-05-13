@@ -12,6 +12,9 @@ const dataReducer = (state, action) => {
             });
         case 'create_room':{
             var room = {id: action.payload.id, title: action.payload.title,chats:[]};
+            AsyncStorage.setItem('@data', JSON.stringify([...state, room])).then().catch((error) => {
+                console.log(error.message);
+            });
             return [...state, room];
         }
         case 'set_data':

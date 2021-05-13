@@ -8,7 +8,7 @@ import {Context as ServerDataContext} from '../contexts/ServerDataContext';
 
 const CreateChat = ({navigation}) => {
     const [value, setValue] = useState('');
-    const {createRoom, state, setChat} = useContext(DataContext);
+    const {createRoom, state} = useContext(DataContext);
     const {createServer} = useContext(ServerDataContext);
     useEffect(() => {
         navigation.setParams({needsConfirmation:false});
@@ -25,7 +25,7 @@ const CreateChat = ({navigation}) => {
             />
             <Button title="Let's Go" buttonStyle={{backgroundColor:'#967DE7'}} onPress={() => {
                 let id = createRoom(value, state.length);
-                createServer(id, value, setChat);
+                createServer(id, value);
                 navigation.pop();
                 navigation.navigate('ChatDetail', {title:value, id, isChatAlive:true});
             }}/>

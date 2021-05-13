@@ -19,6 +19,7 @@ public class LocalPackage implements ReactPackage {
        List<NativeModule> modules = new ArrayList<>();
 
        modules.add(new LocalServer(reactContext));
+       modules.add(new LocalClient(reactContext));
 
        return modules;
    }

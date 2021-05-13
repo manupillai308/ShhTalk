@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import {Context as DataContext} from '../contexts/DataContext';
 import {Context as ServerDataContext} from '../contexts/ServerDataContext';
 import {Context as ClientDataContext} from '../contexts/ClientDataContext';
+import LocalServer from '../../LocalServer';
 import {
   StyleSheet,
   Text,
@@ -11,6 +12,7 @@ import {
   FlatList,
 } from 'react-native';
 import {Icon} from 'react-native-elements';
+import LocalClient from '../../LocalClient';
 
 const renderDate = (date) => {
     return(
@@ -42,31 +44,27 @@ const ChatDetail = ({navigation}) => {
     let flatListRef;
     const [msg, setMsg] = useState('');
     const {state, setChat} = useContext(DataContext);
-    const isClient = navigation.getParam('isClient');
-    let context_data;
-    if(isClient) {
-      context_data = useContext(ClientDataContext); 
-    }
-    else context_data = useContext(ServerDataContext);
-    const {state:{username}, broadcastMsg, reset} = context_data;
 
+    const isClient = navigation.getParam('isClient');
+    clientContext = useContext(ClientDataContext);
+    serverContext = useContext(ServerDataContext);
+    let context_data;
+    if(isClient) context_data = clientContext; 
+    else context_data = serverContext;
+    const {state:{username, active_id}, sendMsg, unsubscribeAll, subscribeAll, loadMsg} = context_data;
+    const isChatAlive = navigation.getParam("isChatAlive");
+    useEffect(() => {
+      if(isChatAlive){
+        if(isClient) subscribeAll(setChat);
+        else subscribeAll(active_id, setChat);
+        loadMsg();
+      }
+      return () => {
+        unsubscribeAll();
+      }
+    }, []);
     const {id, chats:data} = state.find(element => element.id === navigation.getParam('id'));
-    const isChatAlive = navigation.getParam('isChatAlive');
-    if(isChatAlive){
-      useEffect(() => {
-        navigation.setParams({needsConfirmation:true});
-        return () => {
-          let _id = "Sys"+data.length+Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5);
-          let _msg = "closed", _user="Room";
-          if(isClient){
-            _msg = "left the chat"
-            _user = username;
-          }
-          broadcastMsg({id:_id, date: getCurrentTime(), type:'system',  message: _msg, user:_user});
-          reset();
-        };
-      }, []);
-    }
+
     return (
         <View style={styles.container}>
           <FlatList ref={ref => flatListRef = ref}
@@ -126,7 +124,7 @@ const ChatDetail = ({navigation}) => {
                 let _msg = {id:data.length+1+Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5), date: getCurrentTime(), type:"out", message:msg.trim(), user:username};
                 setChat(id, _msg);
                 setMsg('');
-                broadcastMsg(_msg);
+                sendMsg(_msg);
               };
             }}>
                 <Icon type="entypo" name="paper-plane" size={25}/>
@@ -139,15 +137,22 @@ const ChatDetail = ({navigation}) => {
 }
 
 ChatDetail.navigationOptions = ({navigation}) => {
-    const header = {
+    var header = {
         headerTitle: () => <Text style={styles.headerTextStyle}>{navigation.getParam('title')}</Text>,
     };
-
     if(navigation.getParam('isChatAlive')){
-      return {...header, headerLeft: () => null}
-    }else{
-      return header;
+      header = {...header, headerRight: () => (
+        <TouchableOpacity style={{...styles.btnSend, marginTop:25, marginRight:15, margin:20}} onPress={() => {
+            if(navigation.getParam('isClient')) LocalClient.stopClient()
+            else LocalServer.stopServer();
+            navigation.pop();
+            // navigation.setParams({'isChatAlive':false});
+          }}> 
+          <Icon type="feather" name="x-circle" size={35} color="red"/>
+        </TouchableOpacity>
+      )};
     }
+    return header;
 };
 
 const styles = StyleSheet.create({
