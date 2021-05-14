@@ -53,14 +53,14 @@ const serverDataReducer = (state, action) => {
       const connect = eventEmitter.addListener('client-connect', (params) => {
         action.payload.addClient(params);
         const data = {id:Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5), date:getCurrentTime(), type:'system',  message: "joined the chat", user:params.name};
-        LocalServer.sendMsg(params.address, JSON.stringify(data));
+        // LocalServer.sendMsg(params.address, JSON.stringify(data));
         action.payload.addData(data);
       });
 
       const disconnect = eventEmitter.addListener('client-disconnect', (params) => {
         action.payload.removeClient(params);
         const data = {id:Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5), date:getCurrentTime(), type:'system',  message: "left the chat", user:params.name};
-        LocalServer.sendMsg(params.address, JSON.stringify(data));
+        // LocalServer.sendMsg(params.address, JSON.stringify(data));
         action.payload.addData(data);
       });
       const message = eventEmitter.addListener('message', (params) => {

@@ -28,15 +28,17 @@ const ChatsScreen = ({ navigation }) => {
     const actions = [
         {
             text: "Create Room",
-            icon: <Icon reverse name="edit-3" type='feather' size={25} color="#967DE7" />,
+            icon: <Icon reverse name="edit-3" type='feather' size={25} color="#2B2D42" />,
             name: "create_room",
-            textStyle: styles.textStyle
+            textStyle: styles.textStyle,
+            textBackground:"#D90429"
         },
         {
             text: "Join Room",
-            icon: <Icon reverse name="log-in" type='feather' size={25} color="#967DE7" />,
+            icon: <Icon reverse name="log-in" type='feather' size={25} color="#2B2D42" />,
             name: "join_room",
-            textStyle: styles.textStyle
+            textStyle: styles.textStyle,
+            textBackground:"#D90429"
         }
     ];
 
@@ -58,12 +60,12 @@ const ChatsScreen = ({ navigation }) => {
                             }
                             navigation.navigate('ChatDetail', { title: item.title, id: item.id, isChatAlive, isClient}) 
                         }}>
-                    <Chat title={item.title} />
+                    <Chat title={item.title} subtitle={((server_open && item.id == server_active_id) || (client_open && item.id == client_active_id)) ? "Room Active":"Room Closed"} />
                 </TouchableOpacity>
             }}
         /> :
             <View style={{ paddingBottom: 100, flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <Text style={{ fontSize: 23, textAlign: "center", color: 'rgba(0,0,0,0.3)' }}>Nothing here.{"\n"} Tap "+" to create or join a chat room.</Text>
+                <Text style={{ fontSize: 23, fontFamily: "OpenSans-SemiBold", textAlign: "center", color: 'rgba(0,0,0,0.3)' }}>Nothing here.{"\n"} Tap "+" to create or join a chat room.</Text>
             </View>
         }
         <Overlay isVisible={del.visible} overlayStyle={{ width: Dimensions.get('window').width * 0.7 }} onBackdropPress={() => { setDel({ visible: !del.visible, key: null }) }}>
@@ -79,22 +81,22 @@ const ChatsScreen = ({ navigation }) => {
             <Text style={styles.overlayText}>Attention!   </Text>
             <Text style={{ fontSize: 17, padding: 16, textAlign: 'justify', borderWidth: 1, borderRadius: 15, marginBottom: 5 }}>You are about to join a chatroom. Before proceeding,
             {"\n"}{"\n"}Ensure that you are connected to the mobile hotspot of the room admin.</Text>
-            <View style={{ backgroundColor: '#967DE7', flexDirection: 'row', bottom: 0, left: 0, right: 0 }}>
+            <View style={{ backgroundColor: '#2B2D42', flexDirection: 'row', bottom: 0, left: 0, right: 0 }}>
                 <View style={{ flex: 1 }}>
-                    <Button title="Cancel" onPress={toggleOverlay} buttonStyle={{ backgroundColor: '#967DE7' }} />
+                    <Button title="Cancel" onPress={toggleOverlay} buttonStyle={{ backgroundColor: '#2B2D42' }} />
                 </View>
                 <View style={{ flex: 1 }}>
                     <Button title="Continue" onPress={() => {
                         toggleOverlay();
                         connectClient(data.length, createRoom);
-                    }} buttonStyle={{ backgroundColor: '#967DE7' }} />
+                    }} buttonStyle={{ backgroundColor: '#2B2D42' }} />
                 </View>
             </View>
         </Overlay>
         <FloatingAction
             actions={actions}
-            overlayColor='rgba(0, 0, 0, 0.5)'
-            color="#967DE7"
+            overlayColor='rgba(0, 0, 0, 0.2)'
+            color="#2B2D42"
             onPressItem={name => {
                 if (name == 'create_room') {
                     if (!server_open && !client_open)
@@ -135,17 +137,23 @@ ChatsScreen.navigationOptions = () => {
 
 const styles = StyleSheet.create({
     headerStyle: {
-        backgroundColor: '#DACFFE',
+        backgroundColor: '#2B2D42',
+        height:65
     },
     headerTextStyle: {
-        fontSize: 30,
-        fontWeight: 'bold'
+        fontSize: 33,
+        color:"white",
+        // fontWeight: 'bold',
+        fontFamily: 'OpenSans-SemiBold'
     },
     container: {
+        backgroundColor: "#EDF2F4",
         flex: 1
     },
     textStyle: {
-        fontSize: 15,
+        fontSize: 16,
+        fontFamily: 'OpenSans-SemiBold',
+        color:"white",
     },
     overlayStyle: {
         // height:'48%',
@@ -155,7 +163,7 @@ const styles = StyleSheet.create({
         fontSize: 25,
         fontWeight: 'bold',
         alignSelf: 'center',
-        color: '#b82c02',
+        color: '#D90429',
         marginBottom: 10,
     }
 });

@@ -23,14 +23,18 @@ import java.io.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.NoSuchElementException;
+import java.util.LinkedList;
 
 
 public class ClientService extends Service {
 
     public static Socket socket;
+    public static LinkedList<String> messages;
     public static String IP_ADDRESS;
     public static DataInputStream din;
     public static DataOutputStream dout;
+    private static Context context;
 
     private static final int SERVICE_NOTIFICATION_ID = 100100;
 
@@ -46,8 +50,7 @@ public class ClientService extends Service {
         }
     }
     
-    private boolean isAppOnForeground() {
-        Context context = getApplicationContext();
+    private static boolean isAppOnForeground() {
         ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
         List<ActivityManager.RunningAppProcessInfo> appProcesses = activityManager.getRunningAppProcesses();
         if (appProcesses == null) {
@@ -72,6 +75,19 @@ public class ClientService extends Service {
             stopClient();
         }
     }
+    public static void loadMsg(){
+        try{
+            while(isAppOnForeground()){
+                String msg = messages.pop();
+                WritableMap params = Arguments.createMap();
+                params.putString("payload", msg);
+                LocalServer.reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                .emit("message",params);
+            }
+        }catch(NoSuchElementException e){
+
+        }catch(Exception e){}
+    }
 
     private Runnable runnableCode = new Runnable() {
 
@@ -79,6 +95,8 @@ public class ClientService extends Service {
         public void run() {
             try{
                 // socket = new Socket(IP_ADDRESS, 6060);
+                messages = new LinkedList<String>();
+                context = getApplicationContext();
                 SocketAddress sockaddr = new InetSocketAddress(IP_ADDRESS, 6060);
                 socket = new Socket();
                 socket.connect(sockaddr, 3000);
@@ -105,16 +123,9 @@ public class ClientService extends Service {
                         LocalClient.reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
                         .emit("message",params);
                     }
-                    // else{
-                    //     Intent js_service = new Intent(context, HeadlessUpdateService.class);
-                    //     Bundle bundle = new Bundle();
-
-                    //     bundle.putString("payload", msg);
-                    //     js_service.putExtras(bundle);
-
-                    //     context.startService(js_service);
-                    //     HeadlessJsTaskService.acquireWakeLockNow(context);
-                    // }
+                    else{
+                        ClientService.messages.add(msg);
+                    }
                 }catch(SocketException e){
                     return;
                 }catch(IOException e){

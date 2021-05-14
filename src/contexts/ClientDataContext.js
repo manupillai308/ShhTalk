@@ -26,10 +26,10 @@ const clientDataReducer = (state, action) => {
     }
     case 'set_data':
       return {...action.payload, listeners: state.listeners};
-    case 'message':{
-      action.payload.callback(state.active_id, action.payload.data);
-      return state;
-    }
+    // case 'message':{
+    //   action.payload.callback(state.active_id, action.payload.data);
+    //   return state;
+    // }
     case 'client_error':{
       showMessage({
         message:"Cannot Join Room",
@@ -104,10 +104,11 @@ const loadConfig = dispatch => async () => {
   }
 }
 
-const subscribeAll = dispatch => (callback) => {
+const subscribeAll = dispatch => (id, callback) => {
   // console.log("subscribeAll called");
   const addData = (data) => {
-      dispatch({type:'message', payload:{callback, data}})
+      // dispatch({type:'message', payload:{callback, data}});
+      callback(id, data);
   }
 
   const roomLost = () => {
@@ -141,5 +142,8 @@ const connectClient = dispatch => async (length, createRoom) => {
   dispatch({type:'connect', payload:{ip, clientConnect, clientError}});
 };
 
+const loadMsg = () => () => {
+  LocalClient.loadMsg(); 
+}
 
-export const {Context, Provider} = createDataContext(clientDataReducer, {connectClient, subscribeAll, sendMsg, unsubscribeAll, loadConfig}, {active_id:'', client_open:false, username:'', listeners:{}, server_ip:'', active_title:''});
+export const {Context, Provider} = createDataContext(clientDataReducer, {connectClient, subscribeAll, sendMsg, unsubscribeAll, loadConfig, loadMsg}, {active_id:'', client_open:false, username:'', listeners:{}, server_ip:'', active_title:''});

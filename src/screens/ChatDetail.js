@@ -25,13 +25,16 @@ const renderDate = (date) => {
 export const getCurrentTime = () => {
   let date = new Date();
   let hour = date.getHours();
+  if(hour < 10){
+    hour = "0" + hour;
+  }
   let min = date.getMinutes();
   let meredin = "am";
   if(hour >= 13){
     hour -= 12;
     meredin = "pm";
   }
-  if(JSON.stringify(min).length < 2){
+  if(min < 10){
     min = "0" + min;
   }
   let str = hour + ":" + min + " " + meredin;
@@ -55,8 +58,9 @@ const ChatDetail = ({navigation}) => {
     const isChatAlive = navigation.getParam("isChatAlive");
     useEffect(() => {
       if(isChatAlive){
-        if(isClient) subscribeAll(setChat);
-        else subscribeAll(active_id, setChat);
+        // if(isClient) subscribeAll(setChat);
+        // else subscribeAll(active_id, setChat);
+        subscribeAll(active_id, setChat);
         loadMsg();
       }
       return () => {
@@ -88,7 +92,7 @@ const ChatDetail = ({navigation}) => {
               let itemStyle = inMessage ? styles.itemIn : styles.itemOut;
               return (
                 <View style={[styles.item, itemStyle]}>
-                  {inMessage ? <Text style={{paddingLeft:5, fontWeight:'bold', color:'black'}}>{item.user}</Text> : null}
+                  {true ? <Text style={{paddingLeft:5, fontWeight:'bold', color:'black'}}>{item.user}</Text> : null}
                   <View style={[{flexDirection: 'row',}]}>
                     {!inMessage && renderDate(item.date)}
                     <View style={[styles.balloon]}>
@@ -109,6 +113,7 @@ const ChatDetail = ({navigation}) => {
               <Text style={{
                 fontSize:18,
                 color:'#646466',
+                fontFamily: "OpenSans-SemiBold",
               }}>You can't reply to this conversation</Text>
             </View> : null}
             {isChatAlive ? <>
@@ -139,6 +144,8 @@ const ChatDetail = ({navigation}) => {
 ChatDetail.navigationOptions = ({navigation}) => {
     var header = {
         headerTitle: () => <Text style={styles.headerTextStyle}>{navigation.getParam('title')}</Text>,
+        headerStyle: styles.headerStyle,
+        headerTintColor:"white",
     };
     if(navigation.getParam('isChatAlive')){
       header = {...header, headerRight: () => (
@@ -156,6 +163,9 @@ ChatDetail.navigationOptions = ({navigation}) => {
 };
 
 const styles = StyleSheet.create({
+    headerStyle: {
+      backgroundColor: '#2B2D42',
+    },
     systemStyle:{
       alignItems:'center',
       marginTop:5,
@@ -165,11 +175,12 @@ const styles = StyleSheet.create({
     },
     headerTextStyle: {
         fontSize:23,
-        fontWeight:'bold'
+        fontFamily: "OpenSans-SemiBold",
+        color:"white"
     },
     container:{
         flex:1,
-        backgroundColor:'#efebff'
+        backgroundColor:'#EDF2F4'
     },
     list:{
         paddingHorizontal: 17,
@@ -195,11 +206,11 @@ const styles = StyleSheet.create({
         alignSelf:'center',
     },
     inputContainer: {
-        borderBottomColor: '#F5FCFF',
+        borderBottomColor: '#EDF2F4',
         backgroundColor: '#FFFFFF',
         borderRadius:30,
         borderBottomWidth: 1,
-        height:40,
+        height:45,
         flexDirection: 'row',
         alignItems:'center',
         flex:1,
@@ -210,6 +221,8 @@ const styles = StyleSheet.create({
         marginLeft:16,
         borderBottomColor: '#FFFFFF',
         flex:1,
+        fontSize:16,
+        fontFamily: "OpenSans-Regular"
     },
     balloon: {
         maxWidth: 250,
@@ -222,14 +235,14 @@ const styles = StyleSheet.create({
         borderBottomRightRadius:15,
         borderTopRightRadius:15,
         borderTopLeftRadius:15,
-        backgroundColor:'#bda9fc'
+        backgroundColor:'#FBBA74'
     },
     itemOut: {
         alignSelf: 'flex-end',
         borderBottomLeftRadius:15,
         borderTopRightRadius:15,
         borderTopLeftRadius:15,
-        backgroundColor:'#dacffe'
+        backgroundColor:'#FFA970'
     },
     time: {
         alignSelf: 'flex-end',

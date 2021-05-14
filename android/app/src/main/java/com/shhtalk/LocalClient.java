@@ -45,6 +45,11 @@ public class LocalClient extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
+    public void loadMsg(){
+        ClientService.loadMsg();
+    }
+
+    @ReactMethod
     public void sendMsg(String msg){
         ClientService.sendMsg(msg);
     }

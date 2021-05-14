@@ -18,8 +18,11 @@ import com.facebook.react.bridge.Arguments;
 import com.facebook.react.HeadlessJsTaskService;
 import com.shhtalk.MainActivity;
 import java.lang.Thread;
+import java.text.SimpleDateFormat;
 import java.net.*;
 import java.io.*;
+import java.util.*;
+import java.nio.charset.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.LinkedList;
 import java.lang.Thread;
@@ -53,14 +56,60 @@ class ClientConnection extends Thread{
         data_out = new DataOutputStream(socket.getOutputStream());
         write("{ \"user\": \"" + clientName + "\", \"title\": \"" + LocalServer.title + "\" }");
 
-        WritableMap params = Arguments.createMap();
-        params.putString("name", clientName);
-        params.putString("address", socket.getInetAddress().toString());
-        LocalServer.reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+        String msg = "{\"id\": \"" + getUniqueId() + "\", \"date\": \""+ getCurrentTime() + "\", \"type\":\"system\",  \"message\": \"joined the chat\", \"user\": \"" + clientName + "\"}";
+        if(isAppOnForeground()){
+            WritableMap params = Arguments.createMap();
+            params.putString("name", clientName);
+            params.putString("address", socket.getInetAddress().toString());
+            LocalServer.reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
             .emit("client-connect", params);
+        }else{
+            ServerService.messages.add(msg);
+        }
         
+        ServerService.lock.lock();
+        ServerService.broadcastMsg(socket.getInetAddress().toString(), msg);
+        ServerService.lock.unlock();
         exit = false;
     }
+
+    static String getCurrentTime(){
+
+        SimpleDateFormat df = new SimpleDateFormat("HH:mm aa");
+        String  currentTime = df.format(Calendar.getInstance().getTime());
+        return currentTime.replace("AM", "am").replace("PM","pm");
+    }
+
+    static String getUniqueId(){
+        byte[] array = new byte[256];
+        int n = 7;
+        new Random().nextBytes(array);
+  
+        String randomString
+            = new String(array, Charset.forName("UTF-8"));
+  
+        StringBuffer r = new StringBuffer();
+  
+        String  AlphaNumericString
+            = randomString
+                  .replaceAll("[^A-Za-z0-9]", "");
+
+        for (int k = 0; k < AlphaNumericString.length(); k++) {
+  
+            if (Character.isLetter(AlphaNumericString.charAt(k))
+                    && (n > 0)
+                || Character.isDigit(AlphaNumericString.charAt(k))
+                       && (n > 0)) {
+  
+                r.append(AlphaNumericString.charAt(k));
+                n--;
+            }
+        }
+        return r.toString();
+    }
+  
+
+
     public void write(String msg) throws IOException{
         data_out.writeUTF(msg);
         data_out.flush();
@@ -117,12 +166,19 @@ class ClientConnection extends Thread{
     public void stopClient(){
         exit = true;
         try{
-            
-            WritableMap params = Arguments.createMap();
-            params.putString("name", clientName);
-            params.putString("address", this.socket.getInetAddress().toString());
-            LocalServer.reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+            String msg = "{\"id\": \"" + getUniqueId() + "\", \"date\": \""+ getCurrentTime() + "\", \"type\":\"system\",  \"message\": \"left the chat\", \"user\": \"" + clientName + "\"}";
+            if(isAppOnForeground()){
+                WritableMap params = Arguments.createMap();
+                params.putString("name", clientName);
+                params.putString("address", this.socket.getInetAddress().toString());
+                LocalServer.reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
                 .emit("client-disconnect", params);
+            }else{
+                ServerService.messages.add(msg);
+            }
+            ServerService.lock.lock();
+            ServerService.broadcastMsg(this.socket.getInetAddress().toString(), msg);
+            ServerService.lock.unlock();
             
             socket.close();
             data_in.close();

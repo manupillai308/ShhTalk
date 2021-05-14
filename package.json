@@ -1,6 +1,6 @@
 {
   "name": "shhTalk",
-  "version": "0.0.1",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
@@ -15,7 +15,7 @@
     "@react-native-firebase/app": "^11.3.2",
     "react": "17.0.1",
     "react-native": "0.64.0",
-    "react-native-elements": "^3.3.2",
+    "react-native-elements": "^3.4.1",
     "react-native-flash-message": "^0.1.23",
     "react-native-floating-action": "^1.21.0",
     "react-native-gesture-handler": "^1.10.3",
