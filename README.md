@@ -69,8 +69,8 @@ This project is licensed under the terms of the GNU General Public License v3.0.
 
 ## Acknowledgement
 
-This entire project took me around a month to complete and me being not from a development background was only able to fulfill this because of the ingenious and selfless support of the community and many open source intiatives. 
-During the entire building phase, I stumbled across a lot of issues that I was able to solve only because of the power of open source collaboratiions and the love of sharing knowledge in the community.
+This entire project took me around a month to complete and me not being from a development background was only able to fulfill this because of the ingenious and selfless support of the community and many open source intiatives. 
+During the entire building phase, I stumbled across a lot of issues that I was able to solve only because of the power of open source collaborations and the love of sharing knowledge in the community.
 
 I sincerely thank every one of those unknown people, whose codebase, modules, packages, answers, suggestions, hints I used to accomplish this project of mine. 
 
