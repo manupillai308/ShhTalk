@@ -62,6 +62,9 @@ IO.Options options = IO.Options.builder().setReconnection(false).build();
         url = "<online-chat-server-url>"; // Set url to the hosted server url
         socket = IO.socket(url, options);
 ```
+## License
+
+This project is licensed under the terms of the GNU General Public License v3.0. See the [LICENSE](/LICENSE.md) file for license rights and limitations.
 
 ## Acknowledgement
 
