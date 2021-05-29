@@ -35,6 +35,8 @@ public class ClientService extends Service {
     public static DataInputStream din;
     public static DataOutputStream dout;
     private static Context context;
+    public static Notification msg_notification;
+    public static NotificationManager notificationManager;
 
     private static final int SERVICE_NOTIFICATION_ID = 100100;
 
@@ -125,6 +127,7 @@ public class ClientService extends Service {
                     }
                     else{
                         ClientService.messages.add(msg);
+                        ClientService.notificationManager.notify(0, ClientService.msg_notification);
                     }
                 }catch(SocketException e){
                     return;
@@ -169,6 +172,16 @@ public class ClientService extends Service {
             NotificationManager manager = getSystemService(NotificationManager.class);
             manager.createNotificationChannel(channel);
 
+            ClientService.msg_notification = new Notification.Builder(this, CHANNEL_ID)
+                .setContentTitle("ShhTalk")
+                .setContentText("You have new messages")
+                .setSmallIcon(R.mipmap.ic_launcher) //R.drawable.icon
+                .setContentIntent(contentIntent)
+                .build();
+            ClientService.msg_notification.flags |= Notification.FLAG_AUTO_CANCEL;
+            
+            ClientService.notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+
             Notification notification = new Notification.Builder(this, CHANNEL_ID)
             // .setContentIntent(contentIntent)
             .setOngoing(true)
@@ -178,6 +191,15 @@ public class ClientService extends Service {
             .build();
             startForeground(SERVICE_NOTIFICATION_ID, notification);
         }else{
+            ClientService.msg_notification = new NotificationCompat.Builder(this)
+                .setContentTitle("ShhTalk")
+                .setContentText("You have new messages")
+                .setSmallIcon(R.mipmap.ic_launcher) //R.drawable.icon
+                .setContentIntent(contentIntent)
+                .build();
+            ClientService.msg_notification.flags |= Notification.FLAG_AUTO_CANCEL;
+            
+            ClientService.notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
             Notification notification = new NotificationCompat.Builder(this)
                 // .setContentIntent(contentIntent)
                 .setSmallIcon(R.mipmap.ic_launcher)

@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.shhtalk.OnlineClientModule;
+
 public class LocalPackage implements ReactPackage {
 
    @Override
@@ -20,6 +22,7 @@ public class LocalPackage implements ReactPackage {
 
        modules.add(new LocalServer(reactContext));
        modules.add(new LocalClient(reactContext));
+       modules.add(new OnlineClientModule(reactContext));
 
        return modules;
    }

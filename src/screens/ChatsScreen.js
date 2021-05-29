@@ -2,10 +2,11 @@ import React, { useState, useContext, useEffect } from 'react';
 import { Context as DataContext } from '../contexts/DataContext';
 import { Context as ClientDataContext } from '../contexts/ClientDataContext';
 import { Context as ServerDataContext } from '../contexts/ServerDataContext';
+import { Context as OnlineClientContext} from '../contexts/OnlineClientContext';
 import { showMessage } from "react-native-flash-message";
-import { Text, View, StyleSheet, FlatList, TouchableOpacity, Dimensions } from 'react-native';
+import { Text, View, StyleSheet, FlatList, TouchableOpacity, Dimensions} from 'react-native';
 import Chat from '../components/Chat';
-import { Icon, Overlay, Button } from 'react-native-elements';
+import { Icon, Overlay, Button} from 'react-native-elements';
 import { FloatingAction } from 'react-native-floating-action';
 
 
@@ -13,9 +14,12 @@ const ChatsScreen = ({ navigation }) => {
     const { state: data, createRoom, saveData, deleteData } = useContext(DataContext);
     const { state: { active_id: server_active_id, server_open}} = useContext(ServerDataContext);
     const { state: { active_id: client_active_id, client_open}} = useContext(ClientDataContext);
+    const { state: { active_id: online_active_id, connection: online_open}} = useContext(OnlineClientContext);
     const [del, setDel] = useState({ visible: false, key: null});
     const [visible, setVisible] = useState(false);
     const {connectClient} = useContext(ClientDataContext);
+
+
     useEffect(() => {
         return () => {
             saveData();
@@ -26,6 +30,13 @@ const ChatsScreen = ({ navigation }) => {
         setVisible(!visible);
     };
     const actions = [
+        {
+            text: "Go Online",
+            icon: <Icon reverse name="globe-asia" type='font-awesome-5' size={25} color="#2B2D42" />,
+            name: "go_online",
+            textStyle: styles.textStyle,
+            textBackground:"#D90429"
+        },
         {
             text: "Create Room",
             icon: <Icon reverse name="edit-3" type='feather' size={25} color="#2B2D42" />,
@@ -53,14 +64,19 @@ const ChatsScreen = ({ navigation }) => {
                     onPress={() => { 
                             let isChatAlive = false;
                             let isClient = false;
+                            let isOnline = false;
                             if(server_open && (item.id == server_active_id)) isChatAlive = true;
                             else if(client_open && (item.id == client_active_id)){
                                 isChatAlive = true;
                                 isClient = true;
                             }
-                            navigation.navigate('ChatDetail', { title: item.title, id: item.id, isChatAlive, isClient}) 
+                            else if(online_open && (item.id == online_active_id)){
+                                isChatAlive = true;
+                                isOnline = true;
+                            }
+                            navigation.navigate('ChatDetail', { title: item.title, id: item.id, isChatAlive, isClient, isOnline}) 
                         }}>
-                    <Chat title={item.title} subtitle={((server_open && item.id == server_active_id) || (client_open && item.id == client_active_id)) ? "Room Active":"Room Closed"} />
+                    <Chat title={item.title} subtitle={((server_open && item.id == server_active_id) || (client_open && item.id == client_active_id) || (online_open && item.id == online_active_id)) ? "Room Active":"Room Closed"} />
                 </TouchableOpacity>
             }}
         /> :
@@ -99,7 +115,7 @@ const ChatsScreen = ({ navigation }) => {
             color="#2B2D42"
             onPressItem={name => {
                 if (name == 'create_room') {
-                    if (!server_open && !client_open)
+                    if (!server_open && !client_open && !online_open)
                         navigation.navigate('Room');
                     else {
                         showMessage({
@@ -110,13 +126,25 @@ const ChatsScreen = ({ navigation }) => {
                         })
                     }
                 }
-                else {
-                    if (!server_open && !client_open)
+                else if(name == "join_room") {
+                    if (!server_open && !client_open && !online_open)
                         toggleOverlay();
                     else {
                         showMessage({
                             message: "Cannot Create Room",
                             description: "A room is already active, you have close it before joining a new one.",
+                            type: "danger",
+                            duration: 3500,
+                        })
+                    }
+                }
+                else{
+                    if (!server_open && !client_open && !online_open)
+                        navigation.navigate('OnlineRoom');
+                    else {
+                        showMessage({
+                            message: "Cannot Go Online",
+                            description: "A room is already active, you have close it before going online.",
                             type: "danger",
                             duration: 3500,
                         })

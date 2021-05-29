@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import {Context as DataContext} from '../contexts/DataContext';
 import {Context as ServerDataContext} from '../contexts/ServerDataContext';
 import {Context as ClientDataContext} from '../contexts/ClientDataContext';
+import {Context as OnlineClientContext} from '../contexts/OnlineClientContext';
 import LocalServer from '../../LocalServer';
 import {
   StyleSheet,
@@ -10,9 +11,11 @@ import {
   TouchableOpacity,
   TextInput,
   FlatList,
+  Dimensions,
 } from 'react-native';
-import {Icon} from 'react-native-elements';
+import {Icon, Button} from 'react-native-elements';
 import LocalClient from '../../LocalClient';
+import OnlineClient from '../../OnlineClient';
 
 const renderDate = (date) => {
     return(
@@ -49,17 +52,18 @@ const ChatDetail = ({navigation}) => {
     const {state, setChat} = useContext(DataContext);
 
     const isClient = navigation.getParam('isClient');
+    const isOnline = navigation.getParam('isOnline');
     clientContext = useContext(ClientDataContext);
     serverContext = useContext(ServerDataContext);
+    onlineContext = useContext(OnlineClientContext);
     let context_data;
     if(isClient) context_data = clientContext; 
+    else if (isOnline) context_data = onlineContext;
     else context_data = serverContext;
-    const {state:{username, active_id}, sendMsg, unsubscribeAll, subscribeAll, loadMsg} = context_data;
-    const isChatAlive = navigation.getParam("isChatAlive");
+    const {state:{username, active_id, join_code}, sendMsg, unsubscribeAll, subscribeAll, loadMsg} = context_data;
+    const isChatAlive = (active_id === navigation.getParam('id')); //navigation.getParam("isChatAlive");
     useEffect(() => {
       if(isChatAlive){
-        // if(isClient) subscribeAll(setChat);
-        // else subscribeAll(active_id, setChat);
         subscribeAll(active_id, setChat);
         loadMsg();
       }
@@ -71,6 +75,10 @@ const ChatDetail = ({navigation}) => {
 
     return (
         <View style={styles.container}>
+          {join_code ? 
+          <Text style={{fontFamily:"OpenSans-SemiBold", fontSize:15, alignSelf:'center', color:"#D90429"}}>
+            <Text style={{color:"#2B2D42"}}>Room ID for joining: </Text><Text>{join_code}</Text>
+          </Text>:null}
           <FlatList ref={ref => flatListRef = ref}
             onLayout={() => flatListRef.scrollToEnd({animated: false})}
             style={styles.list}
@@ -83,7 +91,7 @@ const ChatDetail = ({navigation}) => {
               if(item.type === 'system'){
                 return <View style={styles.systemStyle}>
                   <Text style={styles.systemFontStyle}>
-                    <Text style={[styles.systemFontStyle, {fontWeight:'bold'}]}>{item.user} </Text>
+                    <Text style={[styles.systemFontStyle, {fontFamily:'OpenSans-Bold'}]}>{item.user} </Text>
                     <Text>{item.message}  </Text>
                   </Text>
                 </View>
@@ -92,14 +100,12 @@ const ChatDetail = ({navigation}) => {
               let itemStyle = inMessage ? styles.itemIn : styles.itemOut;
               return (
                 <View style={[styles.item, itemStyle]}>
-                  {true ? <Text style={{paddingLeft:5, fontWeight:'bold', color:'black'}}>{item.user}</Text> : null}
-                  <View style={[{flexDirection: 'row',}]}>
-                    {!inMessage && renderDate(item.date)}
+                  {true ? <Text style={{paddingLeft:5, color:'black', fontFamily: "OpenSans-Bold"}}>{item.user}</Text> : null}
                     <View style={[styles.balloon]}>
-                      <Text>{item.message}</Text>
+                      <Text style={{fontFamily: "OpenSans-Regular", fontSize:15, paddingVertical:5}}>{item.message}</Text>
                     </View>
-                    {inMessage && renderDate(item.date)}
-                  </View>
+                    {renderDate(item.date)}
+                  {/* </View> */}
                 </View>
               )
             }}/>
@@ -111,7 +117,7 @@ const ChatDetail = ({navigation}) => {
               flex:1
             }}>
               <Text style={{
-                fontSize:18,
+                fontSize:Dimensions.get('window').width/21.82,
                 color:'#646466',
                 fontFamily: "OpenSans-SemiBold",
               }}>You can't reply to this conversation</Text>
@@ -126,7 +132,7 @@ const ChatDetail = ({navigation}) => {
             </View> 
             <TouchableOpacity style={styles.btnSend} onPress={() => {
               if(msg.trim().length > 0){
-                let _msg = {id:data.length+1+Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5), date: getCurrentTime(), type:"out", message:msg.trim(), user:username};
+                let _msg = {date: getCurrentTime(), type:"out", message:msg.trim(), user:username};
                 setChat(id, _msg);
                 setMsg('');
                 sendMsg(_msg);
@@ -148,16 +154,21 @@ ChatDetail.navigationOptions = ({navigation}) => {
         headerTintColor:"white",
     };
     if(navigation.getParam('isChatAlive')){
-      header = {...header, headerRight: () => (
-        <TouchableOpacity style={{...styles.btnSend, marginTop:25, marginRight:15, margin:20}} onPress={() => {
-            if(navigation.getParam('isClient')) LocalClient.stopClient()
-            else LocalServer.stopServer();
-            navigation.pop();
+      header = {...header, headerRight: () => {
+        const title = (navigation.getParam("isOnline") || navigation.getParam('isClient')) ? "Leave Room" : "Stop Room";
+        return (
+        <Button buttonStyle={{borderColor:"#EF233C", backgroundColor:"#D90429", borderRadius:10}} 
+            containerStyle={{paddingRight:20, paddingVertical:10}} 
+            type="solid" title={title} 
+            titleStyle={{fontFamily: "OpenSans-SemiBold", fontSize: Dimensions.get('window').width/28}}
+            onPress={() => {
+              if(navigation.getParam('isClient')) LocalClient.stopClient()
+              else if (navigation.getParam('isOnline')) OnlineClient.stopService();
+              else LocalServer.stopServer();
+              navigation.pop();
             // navigation.setParams({'isChatAlive':false});
-          }}> 
-          <Icon type="feather" name="x-circle" size={35} color="red"/>
-        </TouchableOpacity>
-      )};
+          }}/> 
+      )}};
     }
     return header;
 };
@@ -171,10 +182,11 @@ const styles = StyleSheet.create({
       marginTop:5,
     },
     systemFontStyle:{
-      fontSize:13
+      fontSize:14,
+      fontFamily: "OpenSans-Regular",
     },
     headerTextStyle: {
-        fontSize:23,
+        fontSize:Dimensions.get('window').width/17,
         fontFamily: "OpenSans-SemiBold",
         color:"white"
     },
@@ -221,14 +233,15 @@ const styles = StyleSheet.create({
         marginLeft:16,
         borderBottomColor: '#FFFFFF',
         flex:1,
-        fontSize:16,
+        fontSize:15,
         fontFamily: "OpenSans-Regular"
     },
     balloon: {
         maxWidth: 250,
-        alignSelf:'center',
+        alignSelf:'flex-start',
         paddingHorizontal:5,
         borderRadius: 20,
+        minWidth: 100,
     },
     itemIn: {
         alignSelf: 'flex-start',
@@ -246,7 +259,7 @@ const styles = StyleSheet.create({
     },
     time: {
         alignSelf: 'flex-end',
-        margin: 10,
+        paddingLeft:5,
         fontSize:12,
         color:"#050408",
     },

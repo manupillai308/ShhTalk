@@ -6,7 +6,8 @@ const dataReducer = (state, action) => {
         case 'set_chat':
             return state.map(element => {
                 if(element.id === action.payload.id){
-                    element.chats.push(action.payload.new_msg);
+                    let id = element.chats.length+Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5);
+                    element.chats.push({...(action.payload.new_msg), id});
                 }
                 return element;
             });

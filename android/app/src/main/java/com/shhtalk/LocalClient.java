@@ -7,6 +7,7 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.Promise;
 import com.local_server.ClientService;
 import com.facebook.react.bridge.Callback;
 import android.os.Build;
@@ -14,6 +15,7 @@ import android.content.Intent;
 
 public class LocalClient extends ReactContextBaseJavaModule {
     public static ReactApplicationContext reactContext;
+    public static Boolean running = false;
 
     LocalClient(ReactApplicationContext context) {
        super(context);
@@ -25,7 +27,13 @@ public class LocalClient extends ReactContextBaseJavaModule {
    }
 
    @ReactMethod
+   public void runningStatus(Promise promise){
+          promise.resolve(LocalClient.running);
+   }
+
+   @ReactMethod
    public void startClient(String ip){
+        LocalClient.running = true;
         Intent service = new Intent(LocalClient.reactContext, ClientService.class);
         service.putExtra("IP_ADDRESS", ip);
         // ClientService.IP_ADDRESS = ip;  
@@ -41,6 +49,8 @@ public class LocalClient extends ReactContextBaseJavaModule {
  
         LocalClient.reactContext
          .stopService(new Intent(LocalClient.reactContext, ClientService.class));
+        
+        LocalClient.running = false;
  
     }
 

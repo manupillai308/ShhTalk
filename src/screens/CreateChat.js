@@ -19,12 +19,16 @@ const CreateChat = ({navigation}) => {
                 size={120}
             />
             <Input 
-                placeholder="Enter room name"
+                placeholder="Enter room name..."
                 value={value}
-                onChangeText={setValue}
+                onChangeText={(text) => {
+                    if(text.length < 15){
+                        setValue(text)
+                    }
+                }}
                 autoCapitalize='words'
                 style={{marginTop:10}}
-                inputStyle={{fontFamily:"OpenSans-Regular"}}
+                inputStyle={{fontFamily:"OpenSans-Regular", textAlign:'center'}}
             />
             <Button title="Let's Go" disabled={value.length<1} titleStyle={{fontFamily:"OpenSans-Regular"}} buttonStyle={{backgroundColor:'#2B2D42'}} onPress={() => {
                 let id = createRoom(value, state.length);

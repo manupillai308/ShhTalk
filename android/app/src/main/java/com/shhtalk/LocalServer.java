@@ -7,6 +7,7 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.Callback;
 import com.local_server.ServerService;
 import android.os.Build;
@@ -15,6 +16,7 @@ import android.content.Intent;
 public class LocalServer extends ReactContextBaseJavaModule {
     public static ReactApplicationContext reactContext;
     public static String title;
+    public static Boolean running = false;
 
     LocalServer(ReactApplicationContext context) {
        super(context);
@@ -26,8 +28,14 @@ public class LocalServer extends ReactContextBaseJavaModule {
    }
 
    @ReactMethod
+   public void runningStatus(Promise promise){
+          promise.resolve(LocalServer.running);
+   }
+
+   @ReactMethod
    public void startServer(String room_name){
         LocalServer.title = room_name;
+        LocalServer.running = true;
         Intent service = new Intent(LocalServer.reactContext, ServerService.class);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
                 LocalServer.reactContext.startForegroundService(service);
@@ -41,6 +49,7 @@ public class LocalServer extends ReactContextBaseJavaModule {
  
         LocalServer.reactContext
          .stopService(new Intent(LocalServer.reactContext, ServerService.class));
+        LocalServer.running = false;
  
     }
 

@@ -151,6 +151,7 @@ class ClientConnection extends Thread{
                 }
                 else{
                     ServerService.messages.add(msg);
+                    ServerService.notificationManager.notify(0, ServerService.msg_notification);
                 }
                 ServerService.lock.lock();
                 ServerService.broadcastMsg(this.socket.getInetAddress().toString(), msg);
@@ -205,6 +206,8 @@ public class ServerService extends Service {
     public static volatile boolean exit;
     public static ServerSocket socket;
     public static ArrayList<String> names;
+    public static Notification msg_notification;
+    public static NotificationManager notificationManager;
 
     private static final int SERVICE_NOTIFICATION_ID = 100100;
 
@@ -339,6 +342,16 @@ public class ServerService extends Service {
             NotificationManager manager = getSystemService(NotificationManager.class);
             manager.createNotificationChannel(channel);
 
+            ServerService.msg_notification = new Notification.Builder(this, CHANNEL_ID)
+                .setContentTitle("ShhTalk Online")
+                .setContentText("You have new messages")
+                .setSmallIcon(R.mipmap.ic_launcher) //R.drawable.icon
+                .setContentIntent(contentIntent)
+                .build();
+            ServerService.msg_notification.flags |= Notification.FLAG_AUTO_CANCEL;
+            
+            ServerService.notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+
             Notification notification = new Notification.Builder(this, CHANNEL_ID)
             // .setContentIntent(contentIntent)
             .setOngoing(true)
@@ -348,6 +361,16 @@ public class ServerService extends Service {
             .build();
             startForeground(SERVICE_NOTIFICATION_ID, notification);
         }else{
+            ServerService.msg_notification = new NotificationCompat.Builder(this)
+                .setContentTitle("ShhTalk")
+                .setContentText("You have new messages")
+                .setSmallIcon(R.mipmap.ic_launcher) //R.drawable.icon
+                .setContentIntent(contentIntent)
+                .build();
+            ServerService.msg_notification.flags |= Notification.FLAG_AUTO_CANCEL;
+            
+            ServerService.notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+
             Notification notification = new NotificationCompat.Builder(this)
                 // .setContentIntent(contentIntent)
                 .setSmallIcon(R.mipmap.ic_launcher)
