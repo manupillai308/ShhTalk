@@ -1,3 +1,4 @@
+![](/icon_assets/playstore_marketing.png)
 # ShhTalk
 The entire codebase for the Anonymous Group Chat android application [ShhTalk](https://play.google.com/store/apps/details?id=com.shhtalk).
 
@@ -8,15 +9,15 @@ For creating online chatrooms, you can use the "Go Online" functionality within 
 
 Sounds interesting right? Check it out.
 
-## How to get started (Application Usage)
+## How to get started (Application Usage) 📱
 
 The mobile application can be installed from [Google PlayStore](https://play.google.com/store/apps/details?id=com.shhtalk).
 
-### Creating & Joining Room (Offline)
+### Creating & Joining Room (Offline) 
 
-1) Joining an offline room - To join a friend's room, connect your phone to their WIFI hotspot. Then come back to shhTalk and press the "+" icon at the bottom right corner and select "Join a Room". Voila, thats it, you have automatically joined your friend's room.
+1) Joining an offline room - To join a friend's room, connect your phone to their WIFI hotspot. Then come back to shhTalk and press the ➕ icon at the bottom right corner and select "Join a Room". Voila, thats it, you have automatically joined your friend's room.
 
-2) Creating an offline room - To create a room, first turn on your WIFI hotspot. Then come back to shhTalk and press the "+" icon at the bottom right corner and select "Create a Room", enter a funny room name of your choice and press go. You have sucessfully created a room, just let your friends connect to your hotspot (Don't need to share your internet ;-) ) and follow instruction (1), they will automatically join the room.
+2) Creating an offline room - To create a room, first turn on your WIFI hotspot. Then come back to shhTalk and press the ➕ icon at the bottom right corner and select "Create a Room", enter a funny room name of your choice and press go. You have sucessfully created a room, just let your friends connect to your hotspot (Don't need to share your internet 😉 ) and follow instruction (1), they will automatically join the room.
 
 ### Creating & Joining Room (Online)
 Creating and Joining online rooms are as easy as it seems, just press the "+" icon at the bottom right corner and select "Go Online". There you will have option to Join or Create a room.
@@ -26,7 +27,7 @@ Share this 6 digit code with anyone who wants to join your room, once they get t
 Enjoy.... & keep shhhhinggg!!
 
 
-## For Developers
+## For Developers 💻
 The application is built using React Native. The packages required are listed below. The offline chat feature is implemented using TCP Sockets and the online chat feature is implemented using WebSockets. 
 It should be noted that both of these are implemented in the native side, i.e Java Source Files and the application implements foreground services for all its functionalities. The communication between the Native and React Native is done using event emiiters and Native Modules, and listeners are implemented in the react native side for reacting to certain native side events.
 More on this can be found in the official [React Native Docs](https://reactnative.dev/docs/native-modules-intro). 
@@ -36,7 +37,7 @@ More on this can be found in the official [React Native Docs](https://reactnativ
 A [stackoverflow answer](https://stackoverflow.com/a/66944348/9748372) for the implementation detail on TCP Socket for offline aka chatting through wifi hotspot.
 
 
-### Dependencies
+### 1. Dependencies
 
 #### React Native Major Deps
 * [react-native-elements@3.4.1](https://reactnativeelements.com/docs)
@@ -49,7 +50,7 @@ A [stackoverflow answer](https://stackoverflow.com/a/66944348/9748372) for the i
 * [Socket IO](https://socketio.github.io/socket.io-client-java/installation.html)
 
 
-### ShhTalk-Online
+### 2. ShhTalk-Online
 
 The online chat room feature enables shhTalk users to create anonymous group chat rooms over the internet. The functionality is implemented using SocketIO. A server is hosted over the internet that the mobile application(Java Client) connects to (following a WebSocket Protocol), which handles the communication between multiple connected clients, like exchanging messages and alerting users in a group chat about certain events e.g a user leaving or joining the group.
 The server is implemented in Node.js and the codebase can be found [here](https://github.com/manupillai308/ShhTalk-Server).
